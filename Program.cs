@@ -8,6 +8,7 @@ IDay[] days =
     new DayOne(),
     new DayTwo(),
     new DayThree(),
+    new DayFour(),
 ];
 
 foreach (var day in days)
@@ -18,5 +19,5 @@ foreach (var day in days)
     var firstSolution = day.ComputeFirst(input);
     var secondSolution = day.ComputeSecond(input);
     chrono.Stop();
-    Console.WriteLine($" {day.Day:00} :  {firstSolution} | {secondSolution} in {chrono.ElapsedMilliseconds} ms");
+    Console.WriteLine($" {day.Day:00} :  {firstSolution} | {secondSolution} \tin {chrono.ElapsedMilliseconds} ms");
 }
