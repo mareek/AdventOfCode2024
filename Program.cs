@@ -1,7 +1,7 @@
 ﻿using AdventOfCode2024.Days;
 using AdventOfCode2024.Helpers;
 
-const bool isTest = true;
+const bool isTest = false;
 
 IDay[] days =
 [
@@ -11,6 +11,7 @@ IDay[] days =
     new DayFour(),
     new DayFive(),
     new DaySix(),
+    new DaySeven(),
 ];
 
 foreach (var day in days)
