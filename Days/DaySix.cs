@@ -47,13 +47,12 @@ internal partial class DaySix : IDay
     {
         public IEnumerable<Position> GetCoveredPosition(GuardMap map)
         {
-            HashSet<(Position pos, Direction dir)> cycleDetector = new();
             var curPosition = start;
             var curDir = Direction.Parse(direction);
             while (true)
             {
                 yield return curPosition;
-                cycleDetector.Add((curPosition, curDir));
+                
                 var nextPosition = curDir.Move(curPosition);
                 if (map.IsOutOfBounds(nextPosition))
                     yield break;
@@ -62,9 +61,6 @@ internal partial class DaySix : IDay
                     curDir = curDir.TurnRight();
                 else
                     curPosition = nextPosition;
-
-                if (cycleDetector.Contains((curPosition, curDir)))
-                    yield break;
             }
         }
 
@@ -72,21 +68,8 @@ internal partial class DaySix : IDay
         {
             var curPos = start;
             var curDir = Direction.Parse(direction);
-            while (true)
-            {
-                var nextPosition = curDir.Move(curPos);
-                if (map.IsOutOfBounds(nextPosition))
-                    break;
 
-                if (map.IsObstacle(nextPosition))
-                    curDir = curDir.TurnRight();
-                else
-                {
-                    if (IsGoodBlock(map, curPos, curDir, nextPosition))
-                        yield return nextPosition;
-                    curPos = nextPosition;
-                }
-            }
+            return GetCoveredPosition(map).Where(p => IsGoodBlock(map, curPos, curDir, p));
         }
 
         private bool IsGoodBlock(GuardMap map, Position position, Direction direction, Position obstaclePos)
@@ -116,7 +99,7 @@ internal partial class DaySix : IDay
                 if (map.IsOutOfBounds(nextPosition))
                     return false;
 
-                if (obstaclePos.Equals(nextPosition) || map.IsObstacle(nextPosition))
+                if (obstaclePos == nextPosition || map.IsObstacle(nextPosition))
                     curDir = curDir.TurnRight();
                 else
                     curPos = nextPosition;
