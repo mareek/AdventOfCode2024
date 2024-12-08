@@ -1,8 +1,8 @@
-﻿using AdventOfCode2024.Helpers;
+﻿using AdventOfCode2024.Mapping;
 
 namespace AdventOfCode2024.Days;
 
-internal class DaySix : IDay
+internal partial class DaySix : IDay
 {
     public int Day => 6;
 
@@ -10,7 +10,7 @@ internal class DaySix : IDay
 
     public string ComputeFirst(string input)
     {
-        Map map = new(input);
+        GuardMap map = new(input);
         HashSet<Position> coveredPositions = new();
         foreach (var guard in map.GetGuards())
         {
@@ -21,7 +21,7 @@ internal class DaySix : IDay
 
     public string ComputeSecond(string input)
     {
-        Map map = new(input);
+        GuardMap map = new(input);
         HashSet<Position> blockPositions = new();
         foreach (var guard in map.GetGuards())
         {
@@ -29,97 +29,23 @@ internal class DaySix : IDay
         }
         return blockPositions.Count.ToString();
     }
-
-    private class Map
+    private class GuardMap(string input) : Map(input)
     {
-        private readonly string[] _grid;
-
-        public Map(string input)
-        {
-            _grid = InputReader.GetLines(input);
-            Height = _grid.Length;
-            Width = _grid[0].Length;
-        }
-
-        public int Height { get; }
-        public int Width { get; }
-
-        public IEnumerable<Guard> GetGuards()
-        {
-            for (int y = 0; y < Height; y++)
-            {
-                for (var x = 0; x < Width; x++)
-                {
-                    Position pos = new(x, y);
-                    if (IsGuard(pos))
-                        yield return new(pos, GetCell(pos));
-                }
-            }
-        }
-
-        public bool IsOutOfBounds(Position pos)
-            => pos.X < 0 || pos.Y < 0 || pos.Y >= Height || pos.X >= Width;
-
         public bool IsObstacle(Position pos)
             => GetCell(pos) == '#';
 
         public bool IsGuard(Position pos)
             => GetCell(pos) is '<' or '>' or '^' or 'v';
 
-        public bool IsEmpty(Position pos) => !IsObstacle(pos) && !IsGuard(pos);
-
-        private char GetCell(Position pos) => _grid[pos.Y][pos.X];
-
-        public void Print(IReadOnlyCollection<Position> objects, char glyph)
-        {
-            Console.WriteLine();
-            for (int y = 0; y < Height; y++)
-            {
-                for (int x = 0; x < Width; x++)
-                {
-                    Position pos = new(x, y);
-                    Console.Write(objects.Contains(pos) ? glyph : GetCell(pos));
-                }
-                Console.Write('\n');
-            }
-        }
-    }
-
-    private struct Position(int x, int y)
-    {
-        public int X { get; } = x;
-        public int Y { get; } = y;
-    }
-
-    private struct Direction(int x, int y)
-    {
-        public int X { get; } = x;
-        public int Y { get; } = y;
-
-        public Direction TurnRight()
-        {
-            if (X == 1)
-                return new(0, 1);
-            if (Y == 1)
-                return new(-1, 0);
-            if (X == -1)
-                return new(0, -1);
-            if (Y == -1)
-                return new(1, 0);
-
-            throw new Exception("WHAT THE FUCKING FUCK ????");
-        }
-
-        public Position Move(Position position)
-            => new(position.X + X, position.Y + Y);
-
-        public static Direction Parse(char direction)
-            => new(direction switch { '<' => -1, '>' => 1, _ => 0 }, direction switch { '^' => -1, 'v' => 1, _ => 0 });
+        public IEnumerable<Guard> GetGuards()
+            => from pos in EnumerateAllPositions()
+               where IsGuard(pos)
+               select new Guard(pos, GetCell(pos));
     }
 
     private class Guard(Position start, char direction)
     {
-        public IEnumerable<Position> GetCoveredPosition(Map map)
+        public IEnumerable<Position> GetCoveredPosition(GuardMap map)
         {
             HashSet<(Position pos, Direction dir)> cycleDetector = new();
             var curPosition = start;
@@ -142,7 +68,7 @@ internal class DaySix : IDay
             }
         }
 
-        public IEnumerable<Position> GetPossibleBlocks(Map map)
+        public IEnumerable<Position> GetPossibleBlocks(GuardMap map)
         {
             var curPos = start;
             var curDir = Direction.Parse(direction);
@@ -163,7 +89,7 @@ internal class DaySix : IDay
             }
         }
 
-        private bool IsGoodBlock(Map map, Position position, Direction direction, Position obstaclePos)
+        private bool IsGoodBlock(GuardMap map, Position position, Direction direction, Position obstaclePos)
         {
             const int maxTryDistance = 10000;
 
