@@ -6,6 +6,8 @@ internal class DaySix : IDay
 {
     public int Day => 6;
 
+    public bool IsSlow() => true;
+
     public string ComputeFirst(string input)
     {
         Map map = new(input);
@@ -37,7 +39,6 @@ internal class DaySix : IDay
             _grid = InputReader.GetLines(input);
             Height = _grid.Length;
             Width = _grid[0].Length;
-
         }
 
         public int Height { get; }
@@ -65,7 +66,23 @@ internal class DaySix : IDay
         public bool IsGuard(Position pos)
             => GetCell(pos) is '<' or '>' or '^' or 'v';
 
+        public bool IsEmpty(Position pos) => !IsObstacle(pos) && !IsGuard(pos);
+
         private char GetCell(Position pos) => _grid[pos.Y][pos.X];
+
+        public void Print(IReadOnlyCollection<Position> objects, char glyph)
+        {
+            Console.WriteLine();
+            for (int y = 0; y < Height; y++)
+            {
+                for (int x = 0; x < Width; x++)
+                {
+                    Position pos = new(x, y);
+                    Console.Write(objects.Contains(pos) ? glyph : GetCell(pos));
+                }
+                Console.Write('\n');
+            }
+        }
     }
 
     private struct Position(int x, int y)
@@ -74,119 +91,109 @@ internal class DaySix : IDay
         public int Y { get; } = y;
     }
 
+    private struct Direction(int x, int y)
+    {
+        public int X { get; } = x;
+        public int Y { get; } = y;
+
+        public Direction TurnRight()
+        {
+            if (X == 1)
+                return new(0, 1);
+            if (Y == 1)
+                return new(-1, 0);
+            if (X == -1)
+                return new(0, -1);
+            if (Y == -1)
+                return new(1, 0);
+
+            throw new Exception("WHAT THE FUCKING FUCK ????");
+        }
+
+        public Position Move(Position position)
+            => new(position.X + X, position.Y + Y);
+
+        public static Direction Parse(char direction)
+            => new(direction switch { '<' => -1, '>' => 1, _ => 0 }, direction switch { '^' => -1, 'v' => 1, _ => 0 });
+    }
+
     private class Guard(Position start, char direction)
     {
-        private int Xdirection { get; set; } = direction switch { '<' => -1, '>' => 1, _ => 0 };
-        private int Ydirection { get; set; } = direction switch { '^' => -1, 'v' => 1, _ => 0 };
-
         public IEnumerable<Position> GetCoveredPosition(Map map)
         {
-            HashSet<(Position pos, int xDir, int yDir)> cycleDetector = new();
+            HashSet<(Position pos, Direction dir)> cycleDetector = new();
             var curPosition = start;
+            var curDir = Direction.Parse(direction);
             while (true)
             {
                 yield return curPosition;
-                cycleDetector.Add((curPosition, Xdirection, Ydirection));
-                var nextPosition = GetNextPosition(curPosition);
+                cycleDetector.Add((curPosition, curDir));
+                var nextPosition = curDir.Move(curPosition);
                 if (map.IsOutOfBounds(nextPosition))
                     yield break;
 
                 if (map.IsObstacle(nextPosition))
-                    TurnRigh();
+                    curDir = curDir.TurnRight();
                 else
                     curPosition = nextPosition;
 
-                if (cycleDetector.Contains((curPosition, Xdirection, Ydirection)))
+                if (cycleDetector.Contains((curPosition, curDir)))
                     yield break;
             }
         }
 
         public IEnumerable<Position> GetPossibleBlocks(Map map)
         {
-            HashSet<(Position pos, int xDir, int yDir)> cycleDetector = new();
-            var originalDirections = (Xdirection, Ydirection);
             var curPos = start;
+            var curDir = Direction.Parse(direction);
             while (true)
             {
-                cycleDetector.Add((curPos, Xdirection, Ydirection));
-                var nextPosition = GetNextPosition(curPos);
+                var nextPosition = curDir.Move(curPos);
                 if (map.IsOutOfBounds(nextPosition))
                     break;
 
                 if (map.IsObstacle(nextPosition))
-                    TurnRigh();
+                    curDir = curDir.TurnRight();
                 else
+                {
+                    if (IsGoodBlock(map, curPos, curDir, nextPosition))
+                        yield return nextPosition;
                     curPos = nextPosition;
-            }
-
-            (Xdirection, Ydirection) = originalDirections;
-            curPos = start;
-            while (true)
-            {
-                var nextPosition = GetNextPosition(curPos);
-
-                if (map.IsOutOfBounds(nextPosition))
-                    break;
-
-                if (!map.IsObstacle(nextPosition) && IsGoodBlock(map, curPos, cycleDetector))
-                    yield return nextPosition;
-
-
-                if (map.IsObstacle(nextPosition))
-                    TurnRigh();
-                else
-                    curPos = nextPosition;
+                }
             }
         }
 
-        private void TurnRigh()
-            => (Xdirection, Ydirection) = TurnDirectionRigh(Xdirection, Ydirection);
-
-        private static (int xDir, int yDir) TurnDirectionRigh(int xDirection, int yDirection)
+        private bool IsGoodBlock(Map map, Position position, Direction direction, Position obstaclePos)
         {
-            if (xDirection == 1)
-                return (0, 1);
-            if (yDirection == 1)
-                return (-1, 0);
-            if (xDirection == -1)
-                return (0, -1);
-            if (yDirection == -1)
-                return (1, 0);
+            const int maxTryDistance = 10000;
 
-            throw new Exception("WHAT THE FUCKING FUCK ????");
-        }
+            if (!map.IsEmpty(obstaclePos))
+                return false;
 
-        private Position GetNextPosition(Position position)
-            => new(position.X + Xdirection, position.Y + Ydirection);
+            HashSet<(Position pos, Direction dir)> cycleDetector = new();
 
-        private bool IsGoodBlock(Map map, Position position, HashSet<(Position pos, int xDir, int yDir)> cycleDetector)
-        {
-            const int maxTryDistance = 100;
-
-            HashSet<(Position pos, int xDir, int yDir)> localCycleDetector = new();
-
-            var direction = TurnDirectionRigh(Xdirection, Ydirection);
+            var curDir = direction;
             var curPos = position;
             int tryDistance = 0;
 
             while (true)
             {
                 if (tryDistance++ > maxTryDistance)
-                    return false;
+                    throw new Exception("LOL");
 
-                localCycleDetector.Add((curPos, direction.xDir, direction.yDir));
-                Position nextPosition = new(curPos.X + direction.xDir, curPos.Y + direction.yDir);
+                if (cycleDetector.Contains((curPos, curDir)))
+                    return true;
+
+                cycleDetector.Add((curPos, curDir));
+
+                var nextPosition = curDir.Move(curPos);
                 if (map.IsOutOfBounds(nextPosition))
                     return false;
 
-                if (map.IsObstacle(nextPosition))
-                    direction = TurnDirectionRigh(Xdirection, Ydirection);
+                if (obstaclePos.Equals(nextPosition) || map.IsObstacle(nextPosition))
+                    curDir = curDir.TurnRight();
                 else
                     curPos = nextPosition;
-
-                var posAndDir = (curPos, direction.xDir, direction.yDir);
-                if (cycleDetector.Contains(posAndDir) || localCycleDetector.Contains(posAndDir))
-                    return true;
             }
         }
     }

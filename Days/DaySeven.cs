@@ -10,6 +10,8 @@ namespace AdventOfCode2024.Days;
 internal class DaySeven : IDay
 {
     public int Day => 7;
+    
+    public bool IsSlow() => true;
 
     public string ComputeFirst(string input)
     {
@@ -44,21 +46,16 @@ internal class DaySeven : IDay
     private IEnumerable<T[]> GetAllPossibleCombinations<T>(T[] possibleValues, int length)
     {
         var results = new List<T[]>();
-        Recurse(possibleValues, length, Enumerable.Empty<T>(), results);
+        Recurse(possibleValues, length, [], results);
         return results;
-        
+
         static void Recurse(T[] possibleValues, int length, IEnumerable<T> inConstruction, List<T[]> results)
         {
             if (length == 0)
-            {
                 results.Add(inConstruction.ToArray());
-                return;
-            }
-
-            foreach (var value in possibleValues)
-            {
-                Recurse(possibleValues, length - 1, inConstruction.Append(value), results);
-            }
+            else
+                foreach (var value in possibleValues)
+                    Recurse(possibleValues, length - 1, inConstruction.Append(value), results);
         }
     }
 
