@@ -13,6 +13,7 @@ IDay[] days =
     new DaySix(),
     new DaySeven(),
     new DayEight(),
+    new DayNine(),
 ];
 
 foreach (var day in days)
